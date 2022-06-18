@@ -163,8 +163,10 @@ func (tv *TradingView) parseTradingViewEvent(message string) (err error) {
 		}
 
 		tv.Update(symbol, qsd)
+	case "quote_completed":
+		return nil
 	default:
-		log.Infof("Unknown TV payload: %v", message)
+		log.Debugf("Unknown TV payload: %v", message)
 		return nil
 	}
 
