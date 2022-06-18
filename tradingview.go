@@ -85,35 +85,16 @@ func (tv *TradingView) Connect() {
 		}
 		return result
 	})
-
-	go tv.loop()
-}
-
-func (tv *TradingView) loop() {
-	for {
-		tv.recvMutex.Lock()
-		_, message, err := tv.conn.ReadMessage()
-		tv.recvMutex.Unlock()
-
-		if err != nil {
-			if tv.OnDisconnected != nil {
-				tv.OnDisconnected(err, *tv)
-			} else {
-				panic("Lost connection; panic to restart")
-			}
-		}
-
-		tv.messageHandler(string(message))
-	}
 }
 
 func (tv *TradingView) messageHandler(message string) {
 	re := regexp.MustCompile("~m~[0-9]+~m~")
+	ping := regexp.MustCompile("^~h~[0-9]+$")
 	lines := re.Split(message, -1)
 
 	for i := range lines {
 		if lines[i] != "" {
-			if matched := re.MatchString(lines[i]); matched {
+			if matched := ping.MatchString(lines[i]); matched {
 				tv.sendSigned(lines[i])
 				continue
 			}
@@ -323,6 +304,35 @@ func (tv *TradingView) OnUpdate(symbol string, callback func(Quote) (shouldDelet
 	}
 
 	tv.notifications = append(tv.notifications, notification)
+}
+
+// Start the main event loop after a connection is established.
+func (tv *TradingView) Start() {
+	if tv.IsConnected {
+		for {
+			tv.recvMutex.Lock()
+			_, message, err := tv.conn.ReadMessage()
+			tv.recvMutex.Unlock()
+
+			if err != nil {
+				if tv.OnDisconnected != nil {
+					tv.OnDisconnected(err, *tv)
+				} else {
+					panic("Lost connection; panic to restart")
+				}
+			}
+
+			tv.messageHandler(string(message))
+		}
+	} else {
+		panic("You must perform a Connect() prior to starting the event loop.")
+	}
+}
+
+// Connect and start the main event loop in one command.
+func (tv *TradingView) ConnectAndStart() {
+	tv.Connect()
+	tv.Start()
 }
 
 func createSessionID(prefix string) string {
