@@ -1,5 +1,5 @@
 /*
-Package go-tradingview provides an interface to watch and action on updates of Stock symbols
+Package tradingview provides an interface to watch and action on updates of Stock symbols
 via the TradingView WebSocket interface.
 */
 package tradingview
